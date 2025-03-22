@@ -32,6 +32,8 @@ findHaskellFiles dir = do
       files <- filterM doesFileExist paths
       return $ filter (\f -> takeExtension f `elem` [".hs", ".lhs"]) files
     else return []
+  -- Note: This function doesn't need to filter directories since it doesn't do recursive search,
+  -- but the version in Summarizer.hs does filter out build tool directories
 
 -- | Create a golden test case for a single file
 makeTestCase :: FilePath -> IO TestTree

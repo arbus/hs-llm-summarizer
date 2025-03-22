@@ -9,9 +9,9 @@ import Data.Function (on)
 import Data.Maybe (fromMaybe)
 import System.Process (readProcess)
 import System.Directory (doesDirectoryExist, doesFileExist, listDirectory, createDirectoryIfMissing, getTemporaryDirectory)
-import System.FilePath (takeExtension, (</>))
-import System.IO (hPutStrLn, stderr)
-import Control.Monad (filterM, when)
+import System.FilePath (takeExtension, takeFileName, (</>))
+import System.IO ()
+import Control.Monad (filterM)
 import Control.Exception (catch, SomeException)
 import qualified System.Environment
 
@@ -311,11 +311,10 @@ applyMinify opts text =
 summarizePackage :: Options -> String -> IO String
 summarizePackage opts packageName = do
   -- First try to download with cabal get for best results
-  hPutStrLn stderr $ "Attempting to download package " ++ packageName ++ " using 'cabal get'..."
   downloadedPath <- downloadPackage packageName
   case downloadedPath of
     Just path -> do
-      hPutStrLn stderr $ "Downloaded package source to: " ++ path
+      -- Package downloaded successfully
       exists <- doesDirectoryExist path
       
       if not exists then
@@ -328,20 +327,17 @@ summarizePackage opts packageName = do
         srcExists <- doesDirectoryExist srcPath
         
         if srcExists then do
-          hPutStrLn stderr $ "Found src directory, using it directly: " ++ srcPath
+          -- Use src directory directly if it exists
           processPkgDirectory opts packageName srcPath
         else
           processPkgDirectory opts packageName path
           
     Nothing -> do
-      -- If download fails, try to find in local GHC packages, but warn that
-      -- these might not have source files
-      hPutStrLn stderr $ "Couldn't download package. Checking local GHC databases..."
-      hPutStrLn stderr $ "Note: Installed packages often don't include source files (.hs), only compiled modules."
+      -- If download fails, try to find in local GHC packages, but these might not have source files
       pkgInfo <- findPackagePath packageName
       case pkgInfo of
         Just pkgPath -> do
-          hPutStrLn stderr $ "Found installed package at: " ++ pkgPath
+          -- Found installed package
           exists <- doesDirectoryExist pkgPath
           
           if not exists then
@@ -372,7 +368,7 @@ downloadPackage packageName = do
   tmpDir <- (</> ("hackage-" ++ packageName)) <$> System.Directory.getTemporaryDirectory
   createDirectoryIfMissing True tmpDir
   
-  hPutStrLn stderr $ "Downloading package " ++ packageName ++ " to temporary directory: " ++ tmpDir
+  -- Download package to temporary directory
   
   -- Download the package to the temp directory
   result <- catchIO 
@@ -383,7 +379,7 @@ downloadPackage packageName = do
       -- Find the actual package directory (which includes version)
       tmpDirExists <- doesDirectoryExist tmpDir
       if not tmpDirExists then do
-        hPutStrLn stderr $ "Error: Temp directory doesn't exist after download: " ++ tmpDir
+        -- Temp directory doesn't exist after download
         return Nothing
       else do
         dirs <- listDirectory tmpDir
@@ -391,15 +387,13 @@ downloadPackage packageName = do
         
         if null pkgDirs
           then do
-            hPutStrLn stderr "Error: No matching package directory found in temp dir"
+            -- No matching package directory found
             return Nothing
           else do
             let packageDir = tmpDir </> head pkgDirs
-            hPutStrLn stderr $ "Found package directory: " ++ packageDir
+            -- Found package directory
             return $ Just packageDir)
-    (\e -> do
-      hPutStrLn stderr $ "Cabal get error: " ++ show e
-      return Nothing)
+    (\_ -> return Nothing)
       
   -- Return the package directory path
   return result
@@ -408,18 +402,18 @@ downloadPackage packageName = do
 processPkgDirectory :: Options -> String -> FilePath -> IO String
 processPkgDirectory opts packageName pkgPath = do
   -- Find all Haskell source files in the package directory
-  hPutStrLn stderr $ "Finding Haskell files in: " ++ pkgPath
+  -- Find Haskell files in directory
   sourceFiles <- findHaskellFiles pkgPath
   
   if null sourceFiles
     then do 
-      hPutStrLn stderr $ "No Haskell source files found for package " ++ packageName
+      -- No Haskell source files found for package
       return $ "No Haskell source files found for package " ++ packageName ++ " at " ++ pkgPath
     else do
-      hPutStrLn stderr $ "Found " ++ show (length sourceFiles) ++ " Haskell files to process"
+      -- Process found Haskell files
       -- Process each source file and combine the results
       results <- mapM (summarizePackageFile opts) sourceFiles
-      hPutStrLn stderr $ "Successfully processed all files for package " ++ packageName
+      -- All files processed successfully
       return $ "Package: " ++ packageName ++ "\n\n" ++
               intercalate "\n\n" results
 
@@ -439,20 +433,18 @@ findPackagePath packageName = do
 findPathWithGhcPkg :: String -> IO (Maybe FilePath)
 findPathWithGhcPkg packageName = do
   -- Try to get the package's library directory from ghc-pkg
-  hPutStrLn stderr $ "Checking if package " ++ packageName ++ " is installed..."
+  -- Check if package is installed
   libDirOutput <- catchIO 
     (readProcess "ghc-pkg" ["field", packageName, "library-dirs"] "")
-    (\e -> do
-      hPutStrLn stderr $ "ghc-pkg error: " ++ show e
-      return "")
+    (\_ -> return "")
       
   if "library-dirs:" `isPrefixOf` libDirOutput
     then do
       let libDir = drop 14 $ filter (/= '\n') libDirOutput
-      hPutStrLn stderr $ "Found package library directory: " ++ libDir
+      -- Found package library directory
       return $ Just libDir
     else do
-      hPutStrLn stderr $ "Package " ++ packageName ++ " not found in ghc-pkg database."
+      -- Package not found in ghc-pkg database
       return Nothing
 
 -- | Find a package path in the cabal store
@@ -464,14 +456,12 @@ findPathInCabalStore packageName = do
                  homeDir </> ".cabal/store/ghc-9.4.4",
                  homeDir </> ".cabal/store/ghc-9.2.8"]
   
-  hPutStrLn stderr $ "Checking for package in cabal store..."
+  -- Check for package in cabal store
   
   -- Try to find the package in one of the directories
   results <- mapM (findPackageInDir packageName) baseDirs
   let result = findFirst results
-  case result of
-    Just path -> hPutStrLn stderr $ "Found package in cabal store: " ++ path
-    Nothing -> hPutStrLn stderr $ "Package not found in cabal store."
+  -- Check result
   return result
   where
     findFirst [] = Nothing
@@ -484,22 +474,22 @@ findPackageInDir packageName baseDir = do
   dirExists <- doesDirectoryExist baseDir
   if not dirExists
     then do
-      hPutStrLn stderr $ "Directory does not exist: " ++ baseDir
+      -- Directory does not exist
       return Nothing
     else do
       -- List all directories and find one that starts with the
       -- vowel-removed version of the package name
       let packagePrefix = removeVowels packageName
-      hPutStrLn stderr $ "Looking for prefix '" ++ packagePrefix ++ "' in " ++ baseDir
+      -- Look for package prefix in directory
       entries <- listDirectory baseDir
       let matchingEntries = filter (packagePrefix `isPrefixOf`) entries
       if null matchingEntries
         then do
-          hPutStrLn stderr $ "No matching entries found in " ++ baseDir
+          -- No matching entries found
           return Nothing
         else do
           let pkgDir = baseDir </> head matchingEntries
-          hPutStrLn stderr $ "Found matching entry: " ++ pkgDir
+          -- Found matching entry
           return $ Just pkgDir
 
 -- | Remove vowels from a string (to match how cabal shortens package names)
@@ -507,15 +497,13 @@ removeVowels :: String -> String
 removeVowels = filter (`notElem` "aeiouAEIOU")
 
 -- | Find all Haskell source files in a directory and its subdirectories
+-- Ignores directories related to build tools (dist, dist-newstyle, .cabal, .stack-work, .git)
 findHaskellFiles :: FilePath -> IO [FilePath]
 findHaskellFiles dir = do
   dirExists <- doesDirectoryExist dir
   if not dirExists
-    then do
-      hPutStrLn stderr $ "Directory does not exist: " ++ dir
-      return []
+    then return []
     else do
-      hPutStrLn stderr $ "Searching directory: " ++ dir
       entries <- listDirectory dir
       
       let fullPaths = map (dir </>) entries
@@ -526,19 +514,27 @@ findHaskellFiles dir = do
       
       -- Get Haskell files from the current directory
       let haskellFiles = filter (\f -> takeExtension f `elem` [".hs", ".lhs"]) files
-      when (not $ null haskellFiles) $
-        hPutStrLn stderr $ "Found " ++ show (length haskellFiles) ++ " Haskell files in " ++ dir
+      
+      -- Filter out build tool directories
+      let filteredDirs = filter (not . shouldIgnoreDir) dirs
       
       -- Recursively search subdirectories
-      subDirFiles <- concat <$> mapM findHaskellFiles dirs
+      subDirFiles <- concat <$> mapM findHaskellFiles filteredDirs
       
       -- Combine results
       return $ haskellFiles ++ subDirFiles
+      
+  where
+    -- Directories to ignore (build tools and version control)
+    shouldIgnoreDir :: FilePath -> Bool
+    shouldIgnoreDir path = 
+      let dirName = takeFileName path
+      in dirName `elem` ["dist", "dist-newstyle", ".cabal", ".stack-work", ".git"]
 
 -- | Summarize a single Haskell file from a package
 summarizePackageFile :: Options -> FilePath -> IO String
 summarizePackageFile opts file = do
-  hPutStrLn stderr $ "Processing file: " ++ file
+  -- Process file
   content <- readFile file
   return $ "File: " ++ file ++ "\n" ++
            replicate (length file + 6) '-' ++ "\n" ++
