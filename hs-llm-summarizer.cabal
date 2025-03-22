@@ -1,0 +1,64 @@
+cabal-version:      3.0
+name:               hs-llm-summarizer
+version:            0.1.0.0
+-- synopsis:
+-- description:
+license:            MIT
+license-file:       LICENSE
+author:             Subra
+maintainer:         subra@orangebrush.net
+-- copyright:
+category:           Development
+build-type:         Simple
+extra-doc-files:    CHANGELOG.md
+-- extra-source-files:
+
+common warnings
+    ghc-options: -Wall
+
+executable hs-llm-summarizer
+    import:           warnings
+    main-is:          Main.hs
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.17.2.1,
+                      hs-llm-summarizer,
+                      haskell-src-exts ^>=1.23.1,
+                      text ^>=2.0.2,
+                      directory ^>=1.3.7.1,
+                      filepath ^>=1.4.2.2,
+                      optparse-applicative ^>=0.17.0.0
+    hs-source-dirs:   app
+    default-language: GHC2021
+
+library
+    import:           warnings
+    exposed-modules:  Summarizer
+    -- other-modules:
+    -- other-extensions:
+    build-depends:    base ^>=4.17.2.1,
+                      haskell-src-exts ^>=1.23.1,
+                      text ^>=2.0.2,
+                      directory ^>=1.3.7.1,
+                      filepath ^>=1.4.2.2,
+                      process ^>=1.6.17.0,
+                      temporary ^>=1.3
+    hs-source-dirs:   src
+    default-language: GHC2021
+
+test-suite golden-tests
+    import:           warnings
+    type:             exitcode-stdio-1.0
+    main-is:          Golden.hs
+    other-modules:    Paths_hs_llm_summarizer
+    hs-source-dirs:   test
+    build-depends:    base ^>=4.17.2.1,
+                      hs-llm-summarizer,
+                      tasty ^>=1.4.3,
+                      tasty-golden ^>=2.3.5,
+                      text ^>=2.0.2,
+                      filepath ^>=1.4.2.2,
+                      directory ^>=1.3.7.1,
+                      bytestring ^>=0.11.4.0,
+                      prettyprinter ^>=1.7.1
+    default-language: GHC2021

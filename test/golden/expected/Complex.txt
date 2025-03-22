@@ -1,0 +1,37 @@
+-- Module: test/golden/input/Complex.hs
+
+ | A GADT for representing expressions
+
+data Expr a where
+        LitInt :: Int -> Expr Int
+        LitBool :: Bool -> Expr Bool
+        Add :: Expr Int -> Expr Int -> Expr Int
+        Equal :: Expr Int -> Expr Int -> Expr Bool
+        If :: Expr Bool -> Expr a -> Expr a -> Expr a
+
+ | Type family for determining result type
+
+type family ResultType a where
+        ResultType Int = Int
+        ResultType Bool = Bool
+        ResultType (a -> b) = ResultType b
+
+ | Evaluate an expression
+
+eval :: Expr a -> a
+
+
+
+ | High-order function that applies a function to an expression
+
+applyFn :: (a -> b) -> Expr a -> Expr b
+
+
+
+ | A class for converting values to expressions
+
+class ToExpr a where
+        toExpr :: a -> Expr a
+
+
+

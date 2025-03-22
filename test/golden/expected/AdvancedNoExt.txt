@@ -1,0 +1,47 @@
+-- Module: test/golden/input/AdvancedNoExt.hs
+
+ | Phantom type for database tables
+
+data Table a = Table String
+
+ | Phantom type for table column
+
+data Column a b = Column String
+
+ | Class for manipulating database tables
+
+class Database db where
+        type QueryResult db :: Type
+        
+        query :: db -> String -> IO (QueryResult db)
+        
+        createTable :: Table a -> IO ()
+        
+        dropTable :: Table a -> IO ()
+
+ | Class for orm relationships
+
+class (Database db) => Entity db e | e -> db where
+        tableName :: e -> String
+        
+        columns :: e -> [String]
+        
+        primaryKey :: e -> String
+        
+        getAll :: IO [e]
+        
+        getById :: Int -> IO (Maybe e)
+        
+        save :: e -> IO e
+
+ | MySQL database implementation
+
+data MySQL = MySQL{connectionString :: String}
+
+
+
+ | User entity
+
+data User = User{userId :: Int, userName :: T.Text,
+                 userEmail :: T.Text}
+

@@ -1,0 +1,15 @@
+-- Module: test/golden/input/ComplexImportTest.hs
+
+ | A complex record using many qualified imports
+
+data ComplexData = ComplexData{text :: T.Text,
+                               mapping :: Map.Map T.Text Int, httpClient :: HTTP.Manager,
+                               vector :: Data.Vector.Vector Int,
+                               binary :: Data.ByteString.Lazy.ByteString}
+                     deriving (Generic, Show)
+                     deriving anyclass (ToJSON, FromJSON)
+
+ | Create an empty complex data structure
+
+emptyComplex :: HTTP.Manager -> ComplexData
+

@@ -1,0 +1,16 @@
+-- Module: test/golden/input/CustomImportTest.hs
+
+ | User data type that wraps around the database user
+
+data User = User{userId :: Int, userName :: String, userAge :: Int}
+
+ | Convert database user to application user
+
+fromDbUser :: Db.User -> User
+
+
+
+ | Create a new user
+
+createUser :: String -> Int -> User
+

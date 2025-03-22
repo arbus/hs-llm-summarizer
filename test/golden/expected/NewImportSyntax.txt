@@ -1,0 +1,23 @@
+-- Module: test/golden/input/NewImportSyntax.hs
+
+ | A simple record using qualified imports
+
+data Person = Person{name :: T.Text, age :: Int,
+                     friends :: Map.Map T.Text Int, interests :: Data.Set.Set T.Text}
+
+ | Create a new person
+
+createPerson :: T.Text -> Int -> Person
+
+
+
+ | Add a friend with a score
+
+addFriend :: Person -> T.Text -> Int -> Person
+
+
+
+ | Add an interest
+
+addInterest :: Person -> T.Text -> Person
+

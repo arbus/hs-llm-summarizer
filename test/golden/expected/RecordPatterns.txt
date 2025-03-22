@@ -1,0 +1,46 @@
+-- Module: test/golden/input/RecordPatterns.hs
+
+ | Person record
+
+data Person = Person{firstName :: String, lastName :: String,
+                     age :: Int, address :: Address}
+
+ | Address record
+
+data Address = Address{street :: String, city :: String,
+                       country :: String, postalCode :: String}
+
+ | Using NamedFieldPuns for record pattern matching
+
+greetPerson :: Person -> String
+
+
+
+ | Accessing a nested field with NamedFieldPuns
+
+getCity :: Person -> String
+
+
+
+ | Using RecordWildCards to grab all fields
+
+createSummary :: Person -> String
+
+
+
+ | Combining wildcards and specific fields
+
+getAddressLabel :: Person -> String
+
+
+
+ | Using wildcards with let bindings
+
+incrementAge :: Person -> Person
+
+
+
+ | Nested wildcards
+
+moveToNewCity :: Person -> String -> Person
+
